@@ -15,16 +15,16 @@ internal fun addApiDocumentationPublication(
     artifacts: ArtifactHandler,
     targetDir: String,
     filename: String,
-    format: String
+    format: String,
 ): PublishArtifact {
     return artifacts.add(
         JavaPlugin.API_ELEMENTS_CONFIGURATION_NAME,
-        task.project.file("$targetDir/${filename}.${format}")
+        task.project.file("$targetDir/${filename}.${format}"),
     ) {
-        it.name = filename
-        it.classifier = SWAGGER_CLASSIFIER
-        it.type = format
-        it.builtBy(task)
+        name = filename
+        classifier = SWAGGER_CLASSIFIER
+        type = format
+        builtBy(task)
     }
 }
 
@@ -33,7 +33,7 @@ internal fun addApiDocumentationPublication(
     artifacts: ArtifactHandler,
     targetDir: DirectoryProperty,
     basename: Provider<String>,
-    format: Provider<OpenApiFormat>
+    format: Provider<OpenApiFormat>,
 ): PublishArtifact {
     val fileName = basename.zip(format) { name, f ->
         "${name}.${f.extension}"
@@ -41,11 +41,11 @@ internal fun addApiDocumentationPublication(
 
     return artifacts.add(
         JavaPlugin.API_ELEMENTS_CONFIGURATION_NAME,
-        targetDir.file(fileName)
+        targetDir.file(fileName),
     ) {
-        it.name = basename.get()
-        it.classifier = SWAGGER_CLASSIFIER
-        it.type = format.get().extension
-        it.builtBy(task.get())
+        name = basename.get()
+        classifier = SWAGGER_CLASSIFIER
+        type = format.get().extension
+        builtBy(task.get())
     }
 }

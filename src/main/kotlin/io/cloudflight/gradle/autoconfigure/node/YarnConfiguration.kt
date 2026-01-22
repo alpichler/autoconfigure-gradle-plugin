@@ -23,43 +23,45 @@ internal object YarnConfiguration {
             install.args.set(listOf("--immutable", "--check-cache"))
         }
 
-        val updateVersion = project.tasks.register("${taskPrefix}UpdateVersion", taskClass) { t ->
-            t.group = AutoConfigureGradlePlugin.TASK_GROUP
-            t.yarnCommand.set(project.provider {
-                listOf(
-                    "version",
-                    project.version.toString()
-                )
-            })
-            t.inputs.files(node.inputFiles)
+        val updateVersion = project.tasks.register("${taskPrefix}UpdateVersion", taskClass) {
+            group = AutoConfigureGradlePlugin.TASK_GROUP
+            yarnCommand.set(
+                project.provider {
+                    listOf(
+                        "version",
+                        project.version.toString(),
+                    )
+                },
+            )
+            inputs.files(node.inputFiles)
         }
 
-        val lint = project.tasks.register(NodeConfigurePlugin.YARN_LINT_TASK_NAME, taskClass) { t ->
-            t.group = AutoConfigureGradlePlugin.TASK_GROUP
-            t.args.set(listOf("run", "lint"))
-            t.dependsOn(install)
-            t.inputs.files(node.inputFiles)
-            t.outputs.upToDateWhen { true }
+        val lint = project.tasks.register(NodeConfigurePlugin.YARN_LINT_TASK_NAME, taskClass) {
+            group = AutoConfigureGradlePlugin.TASK_GROUP
+            args.set(listOf("run", "lint"))
+            dependsOn(install)
+            inputs.files(node.inputFiles)
+            outputs.upToDateWhen { true }
         }
 
-        project.tasks.register("${taskPrefix}BuildDev", taskClass) { t ->
-            t.group = AutoConfigureGradlePlugin.TASK_GROUP
-            t.args.set(listOf("run", "build:dev"))
-            t.dependsOn(install)
+        project.tasks.register("${taskPrefix}BuildDev", taskClass) {
+            group = AutoConfigureGradlePlugin.TASK_GROUP
+            args.set(listOf("run", "build:dev"))
+            dependsOn(install)
         }
 
-        val build = project.tasks.register("${taskPrefix}Build", taskClass) { t ->
-            t.group = AutoConfigureGradlePlugin.TASK_GROUP
-            t.args.set(listOf("run", "build"))
-            t.dependsOn(install)
-            t.inputs.files(node.inputFiles)
-            t.outputs.dir(node.destinationDir)
+        val build = project.tasks.register("${taskPrefix}Build", taskClass) {
+            group = AutoConfigureGradlePlugin.TASK_GROUP
+            args.set(listOf("run", "build"))
+            dependsOn(install)
+            inputs.files(node.inputFiles)
+            outputs.dir(node.destinationDir)
         }
 
-        project.tasks.register("${taskPrefix}Audit", taskClass) { t ->
-            t.group = AutoConfigureGradlePlugin.TASK_GROUP
-            t.args.set(listOf("audit"))
-            t.dependsOn(install)
+        project.tasks.register("${taskPrefix}Audit", taskClass) {
+            group = AutoConfigureGradlePlugin.TASK_GROUP
+            args.set(listOf("audit"))
+            dependsOn(install)
         }
 
         if (BuildUtils.isIntegrationBuild() && !EnvironmentUtils.isVerifyBuild()) {
@@ -68,7 +70,7 @@ internal object YarnConfiguration {
 
         project.tasks.getByName(LifecycleBasePlugin.CHECK_TASK_NAME).dependsOn(lint)
 
-        //this prevents running npmBuild each time when a project is started via intellij
+        // this prevents running npmBuild each time when a project is started via intellij
         project.tasks.getByName(JavaPlugin.COMPILE_JAVA_TASK_NAME).mustRunAfter(build)
         project.tasks.getByName(JavaPlugin.JAR_TASK_NAME).dependsOn(build)
 
@@ -79,13 +81,13 @@ internal object YarnConfiguration {
         sourceSetMain.output.dir(mapOf("builtBy" to build), node.destinationDir)
 
         if (NpmHelper.hasScript("test", project.file(NpmHelper.PACKAGE_JSON))) {
-            val npmTest = project.tasks.register("${taskPrefix}Test", taskClass) { t ->
-                t.group = AutoConfigureGradlePlugin.TASK_GROUP
-                t.args.set(listOf("run", "test"))
-                t.dependsOn(listOf(install, build))
-                t.inputs.files(node.inputFiles)
-                t.environment.put("GRADLE_BUILD", true.toString())
-                t.environment.put("INTEGRATION_BUILD", BuildUtils.isIntegrationBuild().toString())
+            val npmTest = project.tasks.register("${taskPrefix}Test", taskClass) {
+                group = AutoConfigureGradlePlugin.TASK_GROUP
+                args.set(listOf("run", "test"))
+                dependsOn(listOf(install, build))
+                inputs.files(node.inputFiles)
+                environment.put("GRADLE_BUILD", true.toString())
+                environment.put("INTEGRATION_BUILD", BuildUtils.isIntegrationBuild().toString())
             }
             project.tasks.getByName("test").dependsOn(npmTest)
         }

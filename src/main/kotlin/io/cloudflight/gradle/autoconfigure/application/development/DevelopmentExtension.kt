@@ -11,12 +11,12 @@ object DevelopmentExtension {
     fun create(project: Project) {
         val propertiesTask =
             project.tasks.register("clfDevelopmentProperties", WriteProperties::class.java) {
-                it.property("development.name", project.name)
-                it.property("development.group", project.group.toString())
-                it.property("development.version", project.version.toString())
-                it.encoding = "UTF-8"
-                it.group = AutoConfigureGradlePlugin.TASK_GROUP
-                it.destinationFile.set(project.layout.buildDirectory.file("generated/resources/development/development.properties"))
+                property("development.name", project.name)
+                property("development.group", project.group.toString())
+                property("development.version", project.version.toString())
+                encoding = "UTF-8"
+                group = AutoConfigureGradlePlugin.TASK_GROUP
+                destinationFile.set(project.layout.buildDirectory.file("generated/resources/development/development.properties"))
             }
         project.tasks.named(JavaPlugin.PROCESS_RESOURCES_TASK_NAME, ProcessResources::class.java).get()
             .from(propertiesTask.get())

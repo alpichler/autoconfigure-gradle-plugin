@@ -22,13 +22,13 @@ open class ReportConfigurePlugin : Plugin<Project> {
                 val reporting = project.extensions.getByType(ReportingExtension::class.java)
                 if (!reporting.reports.any { it.name == REPORT_TASK_NAME }) {
                     reporting.reports.create(REPORT_TASK_NAME, JacocoCoverageReport::class.java) {
-                        it.testSuiteName.set("test")
+                        testSuiteName.set("test")
                     }
 
                     for (subproject in project.subprojects) {
                         project.dependencies.add(
                             JacocoReportAggregationPlugin.JACOCO_AGGREGATION_CONFIGURATION_NAME,
-                            subproject
+                            subproject,
                         )
                     }
                 }

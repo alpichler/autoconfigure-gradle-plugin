@@ -6,7 +6,6 @@ import org.ajoberstar.reckon.gradle.ReckonExtension
 import org.ajoberstar.reckon.gradle.ReckonSettingsPlugin
 import org.apache.maven.artifact.versioning.DefaultArtifactVersion
 import org.gradle.api.Plugin
-import org.gradle.api.Project
 import org.gradle.api.initialization.Settings
 import org.gradle.api.provider.Provider
 import org.slf4j.LoggerFactory
@@ -29,12 +28,12 @@ class AutoConfigureSettingsPlugin : Plugin<Settings> {
             // we are therefore overriding the version again which has been set in the ReckonSettingsPlugin
             // with another provider which simply adds the -SNAPSHOT at the end.
             val sharedVersion = DelayedLocalSnapshotVersion(reckonExtension.version)
-            settings.gradle.allprojects { prj: Project ->
-                prj.version = sharedVersion
+            settings.gradle.allprojects {
+                version = sharedVersion
             }
         }
         settings.gradle.projectsLoaded {
-            it.rootProject.plugins.apply(AutoConfigureGradlePlugin::class.java)
+            rootProject.plugins.apply(AutoConfigureGradlePlugin::class.java)
         }
     }
 
