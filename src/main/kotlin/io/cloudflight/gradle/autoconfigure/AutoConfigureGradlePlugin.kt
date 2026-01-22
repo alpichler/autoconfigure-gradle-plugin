@@ -45,9 +45,9 @@ class AutoConfigureGradlePlugin : Plugin<Project> {
         target.applyAndLog(ReportConfigurePlugin::class)
 
         target.tasks.register("clfPrintVersion") {
-            it.group = TASK_GROUP
-            it.description = "prints the current project version to the quiet logger"
-            it.doLast {
+            group = TASK_GROUP
+            description = "prints the current project version to the quiet logger"
+            doLast {
                 target.logger.quiet(target.version.toString())
             }
         }

@@ -1,18 +1,16 @@
 package io.cloudflight.gradle.autoconfigure.kotlin
 
+import com.google.devtools.ksp.gradle.KspGradleSubplugin
 import io.cloudflight.gradle.autoconfigure.extentions.gradle.api.plugins.apply
 import io.cloudflight.gradle.autoconfigure.extentions.gradle.api.plugins.create
 import io.cloudflight.gradle.autoconfigure.extentions.gradle.api.plugins.getByType
 import io.cloudflight.gradle.autoconfigure.java.JavaConfigurePlugin
-import io.cloudflight.gradle.autoconfigure.java.JavaConfigurePluginExtension
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.jvm.toolchain.JavaToolchainSpec
 import org.jetbrains.kotlin.allopen.gradle.AllOpenExtension
 import org.jetbrains.kotlin.allopen.gradle.SpringGradleSubplugin
 import org.jetbrains.kotlin.gradle.dsl.KotlinProjectExtension
 import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
-import org.jetbrains.kotlin.gradle.internal.Kapt3GradleSubplugin
 import org.jetbrains.kotlin.gradle.plugin.KotlinPluginWrapper
 import org.jetbrains.kotlin.gradle.plugin.getKotlinPluginVersion
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
@@ -24,7 +22,7 @@ class KotlinConfigurePlugin : Plugin<Project> {
 
         project.plugins.apply(KotlinPluginWrapper::class)
 
-        project.plugins.apply(Kapt3GradleSubplugin::class)
+        project.plugins.apply(KspGradleSubplugin::class)
         project.plugins.apply(KotlinJpaSubplugin::class) // TODO only if JPA entities detected on classpath
         project.plugins.apply(SpringGradleSubplugin::class)   // TODO only when there is Spring on the classpath
 
@@ -52,31 +50,22 @@ class KotlinConfigurePlugin : Plugin<Project> {
             // to the dependencies. That's why we add the kotlin-bom in exactly our version here.
             // Without those lines, we would always add the stdlib in the version
             // of the underlying Kotlin Gradle Plugin (1.7.21 at the time of that writing)
-            this.implementation(kotlinConfigureExtension.kotlinVersion
-                .map { project.dependencies.platform("org.jetbrains.kotlin:kotlin-bom:$it") }
+            this.implementation(
+                kotlinConfigureExtension.kotlinVersion
+                    .map { project.dependencies.platform("org.jetbrains.kotlin:kotlin-bom:$it") },
             )
-            this.implementation(kotlinConfigureExtension.kotlinVersion
-                .map { "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$it" }
+            this.implementation(
+                kotlinConfigureExtension.kotlinVersion
+                    .map { "org.jetbrains.kotlin:kotlin-stdlib:$it" },
             )
-        }
-
-        val javaConfigurePluginExtension = extensions.getByType(JavaConfigurePluginExtension::class)
-        kotlin.jvmToolchain {
-            // see https://youtrack.jetbrains.com/issue/KT-51104/Docs-Build-Tools-Gradle-Setting-toolchain-via-Java-extension-doe
-            // `kotlinOptions.jvmTarget` does not correctly get configured when only the `java { toolchain { languageVersion = ... } }` is applied
-            // we need to explicitly configure it in the `kotlin.jvmToolchain` as well.
-            // But we cannot use the `java.toolchain` for it as it should be the same toolchain object instance for java and kotlin
-            // and therefor would lead to a stackoverflow during property resolution.
-            // see: https://youtrack.jetbrains.com/issue/KT-43095/Add-support-for-Java-Toolchain-to-the-Gradle-plugin#focus=Comments-27-5173612.0-0
-            (it as JavaToolchainSpec).languageVersion.set(javaConfigurePluginExtension.languageVersion)
         }
 
         project.afterEvaluate {
             val kotlinVersion = KotlinVersion.fromVersion(kotlinConfigureExtension.kotlinVersion.get().toMajorMinor())
 
             tasks.withType(KotlinCompile::class.java).configureEach {
-                it.compilerOptions.apiVersion.set(kotlinVersion)
-                it.compilerOptions.languageVersion.set(kotlinVersion)
+                compilerOptions.apiVersion.set(kotlinVersion)
+                compilerOptions.languageVersion.set(kotlinVersion)
             }
         }
     }

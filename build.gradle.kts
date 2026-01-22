@@ -1,25 +1,33 @@
 plugins {
-    id("java-gradle-plugin")
-    id("maven-publish")
-    id("com.gradle.plugin-publish") version "1.1.0"
+    `java-gradle-plugin`
+    `maven-publish`
+    id("org.gradle.kotlin.kotlin-dsl") version "6.5.2"
+    id("com.gradle.plugin-publish") version "1.3.0"
 }
 
+version = "1.3.0-SNAPSHOT"
 description = "An opinionated approach to configure a gradle project automatically by convention. It supports to automatically configure various plugins to reduce boilerplate code in gradle projects."
 group = "io.cloudflight.gradle"
 
-autoConfigure {
-    java {
+java {
+    toolchain {
         languageVersion.set(JavaLanguageVersion.of(libs.versions.java.get()))
-        vendorName.set("Cloudflight")
     }
-    kotlin {
-        kotlinVersion.set(libs.versions.kotlin.get())
+    withJavadocJar()
+    withSourcesJar()
+}
+
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_25)
+        freeCompilerArgs.add("-opt-in=kotlin.io.path.ExperimentalPathApi")
     }
 }
 
 repositories {
     mavenCentral()
     gradlePluginPortal()
+    maven { url = uri("https://artifacts.cloudflight.io/repository/plugins-maven") }
 }
 
 dependencies {
@@ -30,6 +38,7 @@ dependencies {
     implementation(libs.kotlin.allopen)
     implementation(libs.kotlin.gradleplugin)
     implementation(libs.kotlin.noarg)
+    implementation(libs.ksp)
 
     implementation(libs.git.properties.plugin)
     implementation(libs.spring.boot.plugin)
@@ -61,8 +70,8 @@ dependencies {
 }
 
 tasks.compileTestKotlin.configure {
-    kotlinOptions {
-        freeCompilerArgs += "-opt-in=kotlin.io.path.ExperimentalPathApi"
+    compilerOptions {
+        freeCompilerArgs.add("-opt-in=kotlin.io.path.ExperimentalPathApi")
     }
 }
 

@@ -38,11 +38,11 @@ class SwaggerCodegenConfigurePlugin : Plugin<Project> {
             isTransitive = false
             incoming.beforeResolve {
                 incoming.dependencies.forEach { dependency ->
-                    (dependency as ModuleDependency).artifact { a ->
-                        a.name = dependency.name
-                        a.type = YAML
-                        a.extension = YAML
-                        a.classifier = SWAGGER_CLASSIFIER
+                    (dependency as ModuleDependency).artifact {
+                        name = dependency.name
+                        type = YAML
+                        extension = YAML
+                        classifier = SWAGGER_CLASSIFIER
                     }
                 }
             }
@@ -63,7 +63,7 @@ class SwaggerCodegenConfigurePlugin : Plugin<Project> {
         with(project) {
             // resolve swagger api project
             val swaggerApi = configurations.getByName(CONFIGURATION_SWAGGER_API)
-            val apiDescriptors = resolveSwaggerApiProject(swaggerApi)
+            val apiDescriptors = resolveSwaggerApiProject(project, swaggerApi)
 
             val clean = tasks.getByName(LifecycleBasePlugin.CLEAN_TASK_NAME) as Delete
             val compileJava = tasks.findByName(JavaPlugin.COMPILE_JAVA_TASK_NAME) as JavaCompile?
@@ -85,7 +85,7 @@ class SwaggerCodegenConfigurePlugin : Plugin<Project> {
                 // only add swagger code generator if configuration is empty, this makes it possible to overwrite the generator on a per-project level simply by adding a 'swaggerCodegen' dependency
                 dependencies.add(
                     CONFIGURATION_SWAGGER_CODEGEN,
-                    "io.swagger.codegen.v3:swagger-codegen-cli:${extension.swaggerCodegenCliVersion.get()}"
+                    "io.swagger.codegen.v3:swagger-codegen-cli:${extension.swaggerCodegenCliVersion.get()}",
                 )
             }
 
@@ -104,7 +104,8 @@ class SwaggerCodegenConfigurePlugin : Plugin<Project> {
             }
             sourcesJar?.dependsOn(generateSwaggerCode)
 
-            val swaggerSources = extensions.getByName(EXTENSION_SWAGGER_SOURCES) as NamedDomainObjectContainer<SwaggerSource>
+            val swaggerSources =
+                extensions.getByName(EXTENSION_SWAGGER_SOURCES) as NamedDomainObjectContainer<SwaggerSource>
 
             apiDescriptors.forEach { apiDescriptor ->
                 // find tasks
@@ -118,7 +119,7 @@ class SwaggerCodegenConfigurePlugin : Plugin<Project> {
                         addDepends(it, apiJar)
                     }
                     project.tasks.whenTaskAdded {
-                        addDepends(it, apiJar)
+                        addDepends(this, apiJar)
                     }
                 }
 
@@ -142,7 +143,7 @@ class SwaggerCodegenConfigurePlugin : Plugin<Project> {
                                 "apis" to true,
                                 "apiTests" to false,
                                 "models" to true,
-                                "supportingFiles" to true
+                                "supportingFiles" to true,
                             )
                         }
                         val swaggerGenerator: String?
@@ -201,12 +202,12 @@ class SwaggerCodegenConfigurePlugin : Plugin<Project> {
                     maybeSetAdditionalProperty(
                         it.code,
                         "apiPackage",
-                        it.code.additionalProperties["invokerPackage"] + ".api"
+                        it.code.additionalProperties["invokerPackage"] + ".api",
                     )
                     maybeSetAdditionalProperty(
                         it.code,
                         "modelPackage",
-                        it.code.additionalProperties["invokerPackage"] + ".api"
+                        it.code.additionalProperties["invokerPackage"] + ".api",
                     )
 
                     maybeSetAdditionalProperty(it.code, "dateLibrary", "java8")
@@ -222,7 +223,7 @@ class SwaggerCodegenConfigurePlugin : Plugin<Project> {
                     generateSwaggerCode.inputs.file(apiDescriptor.swaggerPath!!)
                     generateSwaggerCode.outputs.dir(it.code.outputDir)
 
-                    clean.doFirst { _ ->
+                    clean.doFirst {
                         project.delete(it.code.outputDir)
                     }
                 }
@@ -257,64 +258,47 @@ class SwaggerCodegenConfigurePlugin : Plugin<Project> {
         return project.name.endsWith("-client")
     }
 
-    private fun resolveSwaggerApiProject(swaggerApi: Configuration): List<SwaggerApiDescriptor> {
+    private fun resolveSwaggerApiProject(project: Project, swaggerApi: Configuration): List<SwaggerApiDescriptor> {
         val descriptors = mutableListOf<SwaggerApiDescriptor>()
 
         swaggerApi.dependencies.forEach { dependency ->
             var swaggerProject: Project? = null
-            var swaggerPath: File? = null
+            var swaggerPath: File?
 
-            if (dependency is ProjectDependency) {
+            val detachedConfig = project.configurations.detachedConfiguration(dependency)
+            detachedConfig.isCanBeResolved = true
+            detachedConfig.isCanBeConsumed = false
 
-                @Suppress("DEPRECATION")
-                swaggerProject = dependency.dependencyProject
+            val artifacts = detachedConfig.resolvedConfiguration.resolvedArtifacts
 
-                val configuration = swaggerProject.configurations.getByName(JavaPlugin.API_ELEMENTS_CONFIGURATION_NAME)
-
-
-                // look for yaml file first
-                configuration.artifacts.forEach { artifact ->
-                    if (artifact.classifier == SWAGGER_CLASSIFIER && artifact.type == YAML) {
-                        swaggerPath = artifact.file
-                    }
-                }
-
-                // look for json file
-                if (swaggerPath == null) {
-                    configuration.artifacts.forEach { artifact ->
-                        if (artifact.classifier == SWAGGER_CLASSIFIER && artifact.type == "json") {
-                            swaggerPath = artifact.file
-                        }
-                    }
-                }
-            } else {
-                val resolvedArtifacts = swaggerApi.resolvedConfiguration.resolvedArtifacts
-                swaggerPath =
-                    resolvedArtifacts.find { it.name == dependency.name && it.classifier == SWAGGER_CLASSIFIER && it.type == YAML }?.file
-
-                if (swaggerPath == null) {
-                    swaggerPath =
-                        resolvedArtifacts.find { it.name == dependency.name && it.classifier == SWAGGER_CLASSIFIER && it.type == "json" }?.file
-                }
+            val swaggerArtifact = artifacts.find {
+                it.classifier == SWAGGER_CLASSIFIER && it.type == YAML
+            } ?: artifacts.find {
+                it.classifier == SWAGGER_CLASSIFIER && it.type == JSON
             }
 
+            swaggerPath = swaggerArtifact?.file
+
+            if (dependency is ProjectDependency) {
+                swaggerProject = project.rootProject.project(dependency.path)
+            }
+
+            // Validation
             if (swaggerProject == null && swaggerPath == null) {
-                throw GradleException("swaggerApi dependency has to be a project dependency or swaggerPath has to be defined")
+                throw GradleException("Could not resolve Swagger artifact for dependency '${dependency.name}'. Ensure it publishes a '$SWAGGER_CLASSIFIER' artifact.")
             }
 
             descriptors.add(
                 SwaggerApiDescriptor(
-                    // replace invalid task name characters
                     swaggerName = dependency.name,
                     swaggerProject = swaggerProject,
-                    swaggerPath = swaggerPath
-                )
+                    swaggerPath = swaggerPath,
+                ),
             )
         }
 
         return descriptors
     }
-
 
     companion object {
         private const val CONFIGURATION_SWAGGER_API = "swaggerApi"

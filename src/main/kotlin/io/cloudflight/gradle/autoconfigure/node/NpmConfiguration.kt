@@ -19,45 +19,45 @@ internal object NpmConfiguration {
 
         val install = project.tasks.getByName(NpmInstallTask.NAME) as NpmInstallTask
 
-        val updateVersion = project.tasks.register("${taskPrefix}UpdateVersion", taskClass) { t ->
-            t.group = AutoConfigureGradlePlugin.TASK_GROUP
-            t.npmCommand.set(listOf("version"))
-            t.args.set(project.provider {
+        val updateVersion = project.tasks.register("${taskPrefix}UpdateVersion", taskClass) {
+            group = AutoConfigureGradlePlugin.TASK_GROUP
+            npmCommand.set(listOf("version"))
+            args.set(project.provider {
                 listOf(
                     project.version.toString(),
                     "--allow-same-version",
                     "--no-git-tag-version"
                 )
             })
-            t.inputs.files(node.inputFiles)
+            inputs.files(node.inputFiles)
         }
 
-        val lint = project.tasks.register(NodeConfigurePlugin.NPM_LINT_TASK_NAME, taskClass) { t ->
-            t.group = AutoConfigureGradlePlugin.TASK_GROUP
-            t.args.set(listOf("run", "lint"))
-            t.dependsOn(install)
-            t.inputs.files(node.inputFiles)
-            t.outputs.upToDateWhen { true }
+        val lint = project.tasks.register(NodeConfigurePlugin.NPM_LINT_TASK_NAME, taskClass) {
+            group = AutoConfigureGradlePlugin.TASK_GROUP
+            args.set(listOf("run", "lint"))
+            dependsOn(install)
+            inputs.files(node.inputFiles)
+            outputs.upToDateWhen { true }
         }
 
-        project.tasks.register("${taskPrefix}BuildDev", taskClass) { t ->
-            t.group = AutoConfigureGradlePlugin.TASK_GROUP
-            t.args.set(listOf("run", "build:dev"))
-            t.dependsOn(install)
+        project.tasks.register("${taskPrefix}BuildDev", taskClass) {
+            group = AutoConfigureGradlePlugin.TASK_GROUP
+            args.set(listOf("run", "build:dev"))
+            dependsOn(install)
         }
 
-        val build = project.tasks.register(NodeConfigurePlugin.NPM_BUILD_TASK_NAME, taskClass) { t ->
-            t.group = AutoConfigureGradlePlugin.TASK_GROUP
-            t.args.set(listOf("run", "build"))
-            t.dependsOn(install)
-            t.inputs.files(node.inputFiles)
-            t.outputs.dir(node.destinationDir)
+        val build = project.tasks.register(NodeConfigurePlugin.NPM_BUILD_TASK_NAME, taskClass) {
+            group = AutoConfigureGradlePlugin.TASK_GROUP
+            args.set(listOf("run", "build"))
+            dependsOn(install)
+            inputs.files(node.inputFiles)
+            outputs.dir(node.destinationDir)
         }
 
-        project.tasks.register("${taskPrefix}Audit", taskClass) { t ->
-            t.group = AutoConfigureGradlePlugin.TASK_GROUP
-            t.args.set(listOf("audit"))
-            t.dependsOn(install)
+        project.tasks.register("${taskPrefix}Audit", taskClass) {
+            group = AutoConfigureGradlePlugin.TASK_GROUP
+            args.set(listOf("audit"))
+            dependsOn(install)
         }
 
         if (BuildUtils.isIntegrationBuild() && !EnvironmentUtils.isVerifyBuild()) {
@@ -77,13 +77,13 @@ internal object NpmConfiguration {
         sourceSetMain.output.dir(mapOf("builtBy" to build), node.destinationDir)
 
         if (NpmHelper.hasScript("test", project.file(NpmHelper.PACKAGE_JSON))) {
-            val npmTest = project.tasks.register("${taskPrefix}Test", taskClass) { t ->
-                t.group = AutoConfigureGradlePlugin.TASK_GROUP
-                t.args.set(listOf("run", "test"))
-                t.dependsOn(listOf(install, build))
-                t.inputs.files(node.inputFiles)
-                t.environment.put("GRADLE_BUILD", true.toString())
-                t.environment.put("INTEGRATION_BUILD", BuildUtils.isIntegrationBuild().toString())
+            val npmTest = project.tasks.register("${taskPrefix}Test", taskClass) {
+                group = AutoConfigureGradlePlugin.TASK_GROUP
+                args.set(listOf("run", "test"))
+                dependsOn(listOf(install, build))
+                inputs.files(node.inputFiles)
+                environment.put("GRADLE_BUILD", true.toString())
+                environment.put("INTEGRATION_BUILD", BuildUtils.isIntegrationBuild().toString())
             }
             project.tasks.getByName("test").dependsOn(npmTest)
         }

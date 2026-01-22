@@ -52,11 +52,11 @@ class JavaConfigurePlugin : Plugin<Project> {
         javaPluginExtension.toolchain.languageVersion.set(javaConfigureExtension.languageVersion)
 
         tasks.named(JavaPlugin.JAR_TASK_NAME, Jar::class).configure {
-            it.doFirst(PopulateManifestAction)
+            doFirst(PopulateManifestAction)
         }
 
         tasks.named(JavaPlugin.TEST_TASK_NAME, Test::class).configure {
-            it.useJUnitPlatform()
+            useJUnitPlatform()
         }
 
         project.afterEvaluate {
@@ -89,12 +89,12 @@ class JavaConfigurePlugin : Plugin<Project> {
 
             val compileJava = tasks.named(JavaPlugin.COMPILE_JAVA_TASK_NAME, JavaCompile::class)
             compileJava.configure {
-                it.options.encoding = javaConfigureExtension.encoding.get()
+                options.encoding = javaConfigureExtension.encoding.get()
             }
 
             val compileTest = tasks.named(JavaPlugin.COMPILE_TEST_JAVA_TASK_NAME, JavaCompile::class)
             compileTest.configure {
-                it.options.encoding = javaConfigureExtension.encoding.get()
+                options.encoding = javaConfigureExtension.encoding.get()
             }
         }
 

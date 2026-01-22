@@ -22,7 +22,7 @@ object SpringBootExtension {
 
         // we don't need the plain archive, see https://docs.spring.io/spring-boot/docs/current/gradle-plugin/reference/htmlsingle/#packaging-executable.and-plain-archives
         project.tasks.named(JavaPlugin.JAR_TASK_NAME) {
-            it.enabled = false
+            enabled = false
         }
     }
 }

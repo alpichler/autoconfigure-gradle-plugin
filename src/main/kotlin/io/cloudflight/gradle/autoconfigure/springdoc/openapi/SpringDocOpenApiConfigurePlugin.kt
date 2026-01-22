@@ -34,8 +34,8 @@ class SpringDocOpenApiConfigurePlugin : Plugin<Project> {
         val openApiTask = target.tasks.named("generateOpenApiDocs", OpenApiGeneratorTask::class)
 
         val documentationTask = target.tasks.register("clfGenerateOpenApiDocumentation") {
-            it.group = TASK_GROUP
-            it.dependsOn(openApiTask)
+            group = TASK_GROUP
+            dependsOn(openApiTask)
         }
 
         target.tasks.withType(GenerateMavenPom::class) {
@@ -52,13 +52,13 @@ class SpringDocOpenApiConfigurePlugin : Plugin<Project> {
     private fun `setupWorkaroundFor#171`(target: Project, openapi: OpenApiExtension) {
         val forkedSpringBootRun = target.tasks.named("forkedSpringBootRun", JavaExecFork::class)
 
-        val createDirTask = target.tasks.register("createDummyForkedSpringBootWorkingDir") { task ->
+        val createDirTask = target.tasks.register("createDummyForkedSpringBootWorkingDir") {
             // use same working dir resolution as plugin itself: https://github.com/springdoc/springdoc-openapi-gradle-plugin/blob/master/src/main/kotlin/org/springdoc/openapi/gradle/plugin/OpenApiGradlePlugin.kt#L98
             val workingDirProvider = openapi.customBootRun.workingDir.zip(forkedSpringBootRun) { dir, forked ->
                 dir?.asFile ?: forked.workingDir
             }
-            task.outputs.dir(workingDirProvider)
-            task.doFirst {
+            outputs.dir(workingDirProvider)
+            doFirst {
                 val workingDir = workingDirProvider.get()
                 Files.createDirectories(workingDir.toPath())
             }
@@ -68,11 +68,11 @@ class SpringDocOpenApiConfigurePlugin : Plugin<Project> {
         val dependingTaskNames = setOf("resolveMainClassName", "processResources", "compileKotlin", "compileJava")
 
         target.tasks.matching { dependingTaskNames.contains(it.name) }.all {
-            it.dependsOn(createDirTask)
+            dependsOn(createDirTask)
         }
 
         forkedSpringBootRun.configure {
-            it.dependsOn(createDirTask)
+            dependsOn(createDirTask)
         }
     }
 
@@ -80,7 +80,7 @@ class SpringDocOpenApiConfigurePlugin : Plugin<Project> {
         openapi: OpenApiExtension,
         configureExtension: SpringDocOpenApiConfigureExtension,
         target: Project,
-        basename: String
+        basename: String,
     ) {
         val serverPort = freeServerSocketPort()
         val managementPort = freeServerSocketPort()
@@ -98,19 +98,19 @@ class SpringDocOpenApiConfigurePlugin : Plugin<Project> {
         openapi.groupedApiMappings.set(
             configureExtension.groupedApiMappings.map { actualMap ->
                 actualMap.mapKeys { "$urlPrefix${it.key}" }
-            }
+            },
         )
 
         openapi.outputDir.set(target.layout.buildDirectory.dir("generated/resources/openapi"))
         openapi.outputFileName.set(outputFileName)
         openapi.apiDocsUrl.set(docsUrl)
         openapi.customBootRun {
-            it.workingDir.set(target.layout.buildDirectory.dir("dummyForkedSpringBootWorkingDir"))
+            workingDir.set(target.layout.buildDirectory.dir("dummyForkedSpringBootWorkingDir"))
         }
 
         mapOf(
             "--server.port" to serverPort,
-            "--management.server.port" to managementPort
+            "--management.server.port" to managementPort,
         ).forEach { arg ->
             openapi.customBootRun.args.add("${arg.key}=${arg.value}")
         }
@@ -147,7 +147,7 @@ class SpringDocOpenApiConfigurePlugin : Plugin<Project> {
             target.artifacts,
             openapi.outputDir,
             basename,
-            formatProvider
+            formatProvider,
         )
     }
 

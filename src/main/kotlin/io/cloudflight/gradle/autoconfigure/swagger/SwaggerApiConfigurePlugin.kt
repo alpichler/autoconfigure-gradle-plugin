@@ -62,35 +62,38 @@ class SwaggerApiConfigurePlugin : Plugin<Project> {
                 }
             }
 
-            val documentationTask = target.tasks.register("clfGenerateSwaggerDocumentation", GenerateSwaggerDocsTask::class.java) { task ->
-                task.group = AutoConfigureGradlePlugin.TASK_GROUP
-                task.classFinder = ClassFinder(target)
-                task.readerFactory = ReaderFactory(task.classFinder, ClassFinder(target, javaClass.classLoader))
-                task.generatorFactory = GeneratorFactory(task.classFinder)
-                task.apiSourceValidator = ApiSourceValidator(
-                    InfoValidator(LicenseValidator()), SecurityDefinitionValidator(
-                        ScopeValidator()
-                    ), TagValidator(ExternalDocsValidator())
-                )
-
-                task.inputFiles = getFilesFromSourceSet(target)
-                task.outputDirectories = listOf(target.file(swagger.apiSourceExtensions.first().swaggerDirectory))
-
-                val extension = swagger.apiSourceExtensions.first()
-                val outputs = extension.outputFormats.map {
-                    addApiDocumentationPublication(
-                        task,
-                        target.artifacts,
-                        extension.swaggerDirectory,
-                        extension.swaggerFileName,
-                        it
+            val documentationTask =
+                target.tasks.register("clfGenerateSwaggerDocumentation", GenerateSwaggerDocsTask::class.java) {
+                    group = AutoConfigureGradlePlugin.TASK_GROUP
+                    classFinder = ClassFinder(target)
+                    readerFactory = ReaderFactory(classFinder, ClassFinder(target, javaClass.classLoader))
+                    generatorFactory = GeneratorFactory(classFinder)
+                    apiSourceValidator = ApiSourceValidator(
+                        InfoValidator(LicenseValidator()),
+                        SecurityDefinitionValidator(
+                            ScopeValidator(),
+                        ),
+                        TagValidator(ExternalDocsValidator()),
                     )
+
+                    inputFiles = getFilesFromSourceSet(target)
+                    outputDirectories = listOf(target.file(swagger.apiSourceExtensions.first().swaggerDirectory))
+
+                    val extension = swagger.apiSourceExtensions.first()
+                    val outputs = extension.outputFormats.map {
+                        addApiDocumentationPublication(
+                            this,
+                            target.artifacts,
+                            extension.swaggerDirectory,
+                            extension.swaggerFileName,
+                            it,
+                        )
+                    }
+
+                    outputFile = outputs.map { it.file }
+
+                    doFirst(ConfigureSwaggerAction)
                 }
-
-                task.outputFile = outputs.map { it.file }
-
-                task.doFirst(ConfigureSwaggerAction)
-            }
 
             jarTask.dependsOn(documentationTask.get())
         }
@@ -118,7 +121,7 @@ class SwaggerApiConfigurePlugin : Plugin<Project> {
                 listOf(
                     getFilesFromConfiguration(project, JavaPlugin.COMPILE_CLASSPATH_CONFIGURATION_NAME),
                     getFilesFromConfiguration(project, JavaPlugin.RUNTIME_CLASSPATH_CONFIGURATION_NAME),
-                    getFilesFromSourceSet(project)
+                    getFilesFromSourceSet(project),
                 )
                     .flatten()
                     .forEach {
